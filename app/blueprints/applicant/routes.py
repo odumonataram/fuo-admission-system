@@ -2,6 +2,9 @@
 Applicant blueprint: dashboard, profile management, the main application
 form (programme + UTME + O'Level), document uploads, preview, submission,
 and status tracking.
+
+Applicants can register and submit applications at any time.
+Academic-session opening and closing dates do not restrict applications.
 """
 
 import json
@@ -16,17 +19,30 @@ from flask import (
     jsonify,
     abort,
 )
+
 from flask_login import login_required, current_user
 
 from app.extensions import db
-from app.models import Faculty, Department, Programme
-from app.models.application import ApplicationStatus, DocumentType
+
+from app.models import (
+    Faculty,
+    Department,
+    Programme,
+)
+
+from app.models.application import (
+    ApplicationStatus,
+    DocumentType,
+)
+
 from app.utils.decorators import roles_required
+
 from app.blueprints.applicant.forms import (
     ProfileForm,
     ApplicationForm,
     DocumentUploadForm,
 )
+
 from app.services import (
     application_service,
     file_service,
@@ -34,11 +50,15 @@ from app.services import (
 )
 
 
-applicant_bp = Blueprint("applicant", __name__)
+applicant_bp = Blueprint(
+    "applicant",
+    __name__,
+)
 
 
 def _guard():
     """Ensure the logged-in user has a profile; abort 403 for non-applicants."""
+
     if not current_user.is_applicant:
         abort(403)
 
@@ -52,7 +72,9 @@ def dashboard():
     profile = _guard()
 
     application, error = (
-        application_service.get_or_create_draft_application(profile)
+        application_service.get_or_create_draft_application(
+            profile
+        )
     )
 
     if error:
@@ -92,11 +114,15 @@ def dashboard():
     )
 
 
-@applicant_bp.route("/profile", methods=["GET", "POST"])
+@applicant_bp.route(
+    "/profile",
+    methods=["GET", "POST"],
+)
 @login_required
 @roles_required("applicant")
 def profile():
     profile = _guard()
+
     form = ProfileForm(obj=profile)
 
     if form.validate_on_submit():
@@ -112,7 +138,9 @@ def profile():
                 profile.passport_photo_path
             )
 
-            profile.passport_photo_path = file_info["file_path"]
+            profile.passport_photo_path = (
+                file_info["file_path"]
+            )
 
         profile.profile_completed = True
 
@@ -144,6 +172,8 @@ def profile():
 
 
 def _populate_programme_choices(form):
+    """Populate faculty, department and programme choices."""
+
     form.faculty_id.choices = [
         (f.id, f.name)
         for f in Faculty.query
@@ -166,25 +196,35 @@ def _populate_programme_choices(form):
     ]
 
 
-@applicant_bp.route("/application", methods=["GET", "POST"])
+@applicant_bp.route(
+    "/application",
+    methods=["GET", "POST"],
+)
 @login_required
 @roles_required("applicant")
 def application_form():
     profile = _guard()
 
     application, error = (
-        application_service.get_or_create_draft_application(profile)
+        application_service.get_or_create_draft_application(
+            profile
+        )
     )
 
     if error:
         flash(error, "error")
+
         return redirect(
             url_for("applicant.dashboard")
         )
 
-    if application.id and application.status != ApplicationStatus.DRAFT:
+    if (
+        application.id
+        and application.status != ApplicationStatus.DRAFT
+    ):
         flash(
-            "Your application has already been submitted and can no longer be edited.",
+            "Your application has already been submitted "
+            "and can no longer be edited.",
             "info",
         )
 
@@ -197,11 +237,16 @@ def application_form():
     _populate_programme_choices(form)
 
     if request.method == "GET":
+
         if application.programme_id:
-            form.programme_id.data = application.programme_id
+            form.programme_id.data = (
+                application.programme_id
+            )
+
             form.department_id.data = (
                 application.programme.department_id
             )
+
             form.faculty_id.data = (
                 application.programme.department.faculty_id
             )
@@ -210,7 +255,9 @@ def application_form():
             application.utme_registration_number
         )
 
-        form.utme_score.data = application.utme_score
+        form.utme_score.data = (
+            application.utme_score
+        )
 
         form.olevel_exam_type.data = (
             application.olevel_exam_type
@@ -225,13 +272,19 @@ def application_form():
                 application.utme_subjects_json
             )
 
-            for i, entry in enumerate(saved[:4]):
-                form.utme_subjects.entries[i].form.subject.data = (
-                    entry.get("subject")
+            for i, entry in enumerate(
+                saved[:4]
+            ):
+                form.utme_subjects.entries[
+                    i
+                ].form.subject.data = entry.get(
+                    "subject"
                 )
 
-                form.utme_subjects.entries[i].form.score.data = (
-                    entry.get("score")
+                form.utme_subjects.entries[
+                    i
+                ].form.score.data = entry.get(
+                    "score"
                 )
 
         if application.olevel_results_json:
@@ -239,26 +292,35 @@ def application_form():
                 application.olevel_results_json
             )
 
-            for i, entry in enumerate(saved[:9]):
-                form.olevel_results.entries[i].form.subject.data = (
-                    entry.get("subject")
+            for i, entry in enumerate(
+                saved[:9]
+            ):
+                form.olevel_results.entries[
+                    i
+                ].form.subject.data = entry.get(
+                    "subject"
                 )
 
-                form.olevel_results.entries[i].form.grade.data = (
-                    entry.get("grade")
+                form.olevel_results.entries[
+                    i
+                ].form.grade.data = entry.get(
+                    "grade"
                 )
 
     if form.validate_on_submit():
+
         programme = Programme.query.get(
             form.programme_id.data
         )
 
         if (
             not programme
-            or programme.department_id != form.department_id.data
+            or programme.department_id
+            != form.department_id.data
         ):
             flash(
-                "Selected programme does not match the selected department.",
+                "Selected programme does not match "
+                "the selected department.",
                 "error",
             )
 
@@ -273,7 +335,8 @@ def application_form():
             != form.faculty_id.data
         ):
             flash(
-                "Selected department does not match the selected faculty.",
+                "Selected department does not match "
+                "the selected faculty.",
                 "error",
             )
 
@@ -312,8 +375,12 @@ def application_form():
             ),
             utme_score=form.utme_score.data,
             utme_subjects=utme_subjects,
-            olevel_exam_type=form.olevel_exam_type.data,
-            olevel_exam_year=form.olevel_exam_year.data,
+            olevel_exam_type=(
+                form.olevel_exam_type.data
+            ),
+            olevel_exam_year=(
+                form.olevel_exam_year.data
+            ),
             olevel_results=olevel_results,
         )
 
@@ -323,7 +390,9 @@ def application_form():
         )
 
         return redirect(
-            url_for("applicant.application_documents")
+            url_for(
+                "applicant.application_documents"
+            )
         )
 
     return render_template(
@@ -343,27 +412,39 @@ def application_documents():
     profile = _guard()
 
     application, error = (
-        application_service.get_or_create_draft_application(profile)
+        application_service.get_or_create_draft_application(
+            profile
+        )
     )
 
-    if error or not application or not application.id:
+    if (
+        error
+        or not application
+        or not application.id
+    ):
         flash(
-            "Please complete your application details before uploading documents.",
+            "Please complete your application details "
+            "before uploading documents.",
             "warning",
         )
 
         return redirect(
-            url_for("applicant.application_form")
+            url_for(
+                "applicant.application_form"
+            )
         )
 
     if application.status != ApplicationStatus.DRAFT:
         flash(
-            "Your application has already been submitted and can no longer be edited.",
+            "Your application has already been submitted "
+            "and can no longer be edited.",
             "info",
         )
 
         return redirect(
-            url_for("applicant.application_status")
+            url_for(
+                "applicant.application_status"
+            )
         )
 
     form = DocumentUploadForm()
@@ -376,12 +457,18 @@ def application_documents():
     }
 
     if form.validate_on_submit():
+
         uploaded_any = False
 
         for field_name, doc_type in field_to_doctype.items():
-            field = getattr(form, field_name)
+
+            field = getattr(
+                form,
+                field_name,
+            )
 
             if field.data:
+
                 file_info = file_service.save_file(
                     field.data,
                     "DOCUMENT_UPLOAD_SUBDIR",
@@ -407,7 +494,9 @@ def application_documents():
             )
 
         return redirect(
-            url_for("applicant.application_preview")
+            url_for(
+                "applicant.application_preview"
+            )
         )
 
     documents = (
@@ -431,27 +520,39 @@ def application_preview():
     profile = _guard()
 
     application, error = (
-        application_service.get_or_create_draft_application(profile)
+        application_service.get_or_create_draft_application(
+            profile
+        )
     )
 
-    if error or not application or not application.id:
+    if (
+        error
+        or not application
+        or not application.id
+    ):
         flash(
             "Please complete your application details first.",
             "warning",
         )
 
         return redirect(
-            url_for("applicant.application_form")
+            url_for(
+                "applicant.application_form"
+            )
         )
 
-    checklist = application_service.get_completeness_checklist(
-        profile,
-        application,
+    checklist = (
+        application_service.get_completeness_checklist(
+            profile,
+            application,
+        )
     )
 
-    ready = application_service.is_ready_to_submit(
-        profile,
-        application,
+    ready = (
+        application_service.is_ready_to_submit(
+            profile,
+            application,
+        )
     )
 
     documents = (
@@ -494,17 +595,25 @@ def application_submit():
     profile = _guard()
 
     application, error = (
-        application_service.get_or_create_draft_application(profile)
+        application_service.get_or_create_draft_application(
+            profile
+        )
     )
 
-    if error or not application or not application.id:
+    if (
+        error
+        or not application
+        or not application.id
+    ):
         flash(
             "Please complete your application before submitting.",
             "error",
         )
 
         return redirect(
-            url_for("applicant.application_form")
+            url_for(
+                "applicant.application_form"
+            )
         )
 
     if application.status != ApplicationStatus.DRAFT:
@@ -514,7 +623,9 @@ def application_submit():
         )
 
         return redirect(
-            url_for("applicant.application_status")
+            url_for(
+                "applicant.application_status"
+            )
         )
 
     if not application_service.is_ready_to_submit(
@@ -527,34 +638,24 @@ def application_submit():
         )
 
         return redirect(
-            url_for("applicant.application_preview")
+            url_for(
+                "applicant.application_preview"
+            )
         )
 
-    submitted_application, submission_error = (
-        application_service.submit_application(
-            application
-        )
+    # No academic-session date restriction is applied here.
+    application_service.submit_application(
+        application
     )
-
-    if submission_error:
-        flash(
-            submission_error,
-            "error",
-        )
-
-        return redirect(
-            url_for("applicant.application_preview")
-        )
 
     auth_service.log_action(
         actor_id=current_user.id,
         action="APPLICATION_SUBMITTED",
         entity_type="Application",
-        entity_id=submitted_application.id,
+        entity_id=application.id,
         description=(
             f"Application "
-            f"{submitted_application.application_number} "
-            f"submitted"
+            f"{application.application_number} submitted"
         ),
         ip_address=request.remote_addr,
         user_agent=request.user_agent.string,
@@ -566,7 +667,9 @@ def application_submit():
     )
 
     return redirect(
-        url_for("applicant.application_status")
+        url_for(
+            "applicant.application_status"
+        )
     )
 
 
@@ -577,7 +680,9 @@ def application_status():
     profile = _guard()
 
     application, error = (
-        application_service.get_or_create_draft_application(profile)
+        application_service.get_or_create_draft_application(
+            profile
+        )
     )
 
     if error:
@@ -593,19 +698,24 @@ def application_status():
     )
 
 
-@applicant_bp.route("/application/admission-letter")
+@applicant_bp.route(
+    "/application/admission-letter"
+)
 @login_required
 @roles_required("applicant")
 def admission_letter():
     profile = _guard()
 
     application, _ = (
-        application_service.get_or_create_draft_application(profile)
+        application_service.get_or_create_draft_application(
+            profile
+        )
     )
 
     if (
         not application
-        or application.status != ApplicationStatus.APPROVED
+        or application.status
+        != ApplicationStatus.APPROVED
     ):
         flash(
             "Your admission letter is not available yet.",
@@ -613,7 +723,9 @@ def admission_letter():
         )
 
         return redirect(
-            url_for("applicant.application_status")
+            url_for(
+                "applicant.application_status"
+            )
         )
 
     letter = (
@@ -624,12 +736,15 @@ def admission_letter():
 
     if not letter:
         flash(
-            "Your admission letter is being processed. Please check back shortly.",
+            "Your admission letter is being processed. "
+            "Please check back shortly.",
             "info",
         )
 
         return redirect(
-            url_for("applicant.application_status")
+            url_for(
+                "applicant.application_status"
+            )
         )
 
     return render_template(
@@ -640,7 +755,9 @@ def admission_letter():
     )
 
 
-# --- AJAX endpoints for cascading dropdowns ---
+# ------------------------------------------------------------------
+# AJAX endpoints for cascading dropdowns
+# ------------------------------------------------------------------
 
 @applicant_bp.route(
     "/api/departments/<int:faculty_id>"
