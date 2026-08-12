@@ -1,0 +1,65 @@
+{% extends "shared/base.html" %}
+{% block title %}Application Status | {{ app_name }}{% endblock %}
+
+{% block content %}
+<section class="py-5">
+  <div class="container" style="max-width: 720px;">
+    <h3 class="mb-4"><i class="bi bi-clock-history me-2"></i>Application Status</h3>
+
+    <div class="fuo-card p-4 p-md-5">
+      {% if not application or not application.id %}
+        <p class="text-muted">You haven't started an application yet.</p>
+        <a href="{{ url_for('applicant.application_form') }}" class="btn btn-fuo-primary">Start Application</a>
+      {% else %}
+        <p class="mb-1 text-muted small">Application Number</p>
+        <h5 class="mb-4">
+          {% if not application.application_number.startswith('DRAFT-') %}
+            {{ application.application_number }}
+          {% else %}
+            Not yet assigned (submit to receive one)
+          {% endif %}
+        </h5>
+
+        {% set steps = ["draft", "submitted", "under_review", "approved"] %}
+        {% set current_index = steps.index(application.status) if application.status in steps else 0 %}
+
+        <div class="d-flex justify-content-between position-relative mb-4">
+          {% for step in ["Draft", "Submitted", "Under Review", "Decision"] %}
+          <div class="text-center flex-fill">
+            <div class="rounded-circle mx-auto mb-2 d-flex align-items-center justify-content-center
+                        {{ 'bg-success text-white' if loop.index0 <= current_index else 'bg-light text-muted' }}"
+                 style="width:36px;height:36px;">
+              {% if loop.index0 < current_index or application.status == 'approved' and loop.index0 <= current_index %}
+                <i class="bi bi-check"></i>
+              {% else %}
+                {{ loop.index }}
+              {% endif %}
+            </div>
+            <small class="text-muted">{{ step }}</small>
+          </div>
+          {% endfor %}
+        </div>
+
+        {% if application.status == 'rejected' %}
+          <div class="alert alert-danger">
+            Unfortunately, your application was not successful this admission cycle.
+          </div>
+        {% elif application.status == 'approved' %}
+          <div class="alert alert-success">
+            Congratulations! Your application has been approved.
+            <a href="{{ url_for('applicant.admission_letter') }}" class="alert-link">Download your admission letter</a>.
+          </div>
+        {% elif application.status == 'submitted' or application.status == 'under_review' %}
+          <div class="alert alert-info mb-0">
+            Your application is being reviewed by the admissions office. You'll be notified once a decision is made.
+          </div>
+        {% else %}
+          <div class="alert alert-warning mb-0">
+            Your application is still in draft. Complete and submit it from your dashboard.
+          </div>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}

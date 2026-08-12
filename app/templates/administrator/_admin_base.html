@@ -1,0 +1,52 @@
+{% extends "shared/base.html" %}
+
+{% block content %}
+<div class="d-flex" style="min-height: calc(100vh - 76px);">
+  <aside class="d-none d-lg-flex flex-column p-3" style="width:260px;background:var(--fuo-blue-dark);">
+    <div class="text-white-50 small text-uppercase mb-2 px-2">Admissions Console</div>
+    <nav class="nav nav-pills flex-column gap-1">
+      <a class="nav-link text-white {{ 'active bg-white bg-opacity-25' if active_nav == 'dashboard' }}"
+         href="{{ url_for('administrator.dashboard') }}">
+        <i class="bi bi-speedometer2 me-2"></i>Dashboard
+      </a>
+      <a class="nav-link text-white {{ 'active bg-white bg-opacity-25' if active_nav == 'applicants' }}"
+         href="{{ url_for('administrator.applicants_list') }}">
+        <i class="bi bi-people me-2"></i>Manage Applicants
+      </a>
+      <div class="text-white-50 small text-uppercase mt-3 mb-1 px-2">Academic Structure</div>
+      <a class="nav-link text-white {{ 'active bg-white bg-opacity-25' if active_nav == 'faculties' }}"
+         href="{{ url_for('administrator.faculties') }}">
+        <i class="bi bi-bank me-2"></i>Faculties
+      </a>
+      <a class="nav-link text-white {{ 'active bg-white bg-opacity-25' if active_nav == 'departments' }}"
+         href="{{ url_for('administrator.departments') }}">
+        <i class="bi bi-diagram-3 me-2"></i>Departments
+      </a>
+      <a class="nav-link text-white {{ 'active bg-white bg-opacity-25' if active_nav == 'programmes' }}"
+         href="{{ url_for('administrator.programmes') }}">
+        <i class="bi bi-mortarboard me-2"></i>Programmes
+      </a>
+      <a class="nav-link text-white {{ 'active bg-white bg-opacity-25' if active_nav == 'sessions' }}"
+         href="{{ url_for('administrator.sessions') }}">
+        <i class="bi bi-calendar3 me-2"></i>Academic Sessions
+      </a>
+      {% if current_user.is_super_admin %}
+      <div class="text-white-50 small text-uppercase mt-3 mb-1 px-2">System</div>
+      <a class="nav-link text-white {{ 'active bg-white bg-opacity-25' if active_nav == 'users' }}"
+         href="{{ url_for('administrator.users') }}">
+        <i class="bi bi-person-gear me-2"></i>Staff Accounts
+      </a>
+      {% endif %}
+    </nav>
+    <div class="mt-auto pt-3 border-top border-secondary">
+      <a href="{{ url_for('auth.logout') }}" class="nav-link text-white-50">
+        <i class="bi bi-box-arrow-right me-2"></i>Logout
+      </a>
+    </div>
+  </aside>
+
+  <main class="flex-grow-1 p-4" style="background:var(--fuo-grey-light);">
+    {% block admin_content %}{% endblock %}
+  </main>
+</div>
+{% endblock %}

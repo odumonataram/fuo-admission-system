@@ -1,0 +1,28 @@
+{% extends "shared/base.html" %}
+{% block title %}Programmes | {{ app_name }}{% endblock %}
+{% block content %}
+<section class="py-5">
+  <div class="container">
+    <h2 class="section-title mb-4">Programmes</h2>
+    {% if faculties %}
+      {% for faculty in faculties %}
+        <h4 class="text-fuo-blue mt-4">{{ faculty.name }}</h4>
+        <div class="row g-3">
+          {% for dept in faculty.departments %}
+            {% for prog in dept.programmes %}
+              <div class="col-md-4">
+                <div class="fuo-card p-3">
+                  <h6 class="mb-1">{{ prog.name }}</h6>
+                  <small class="text-muted">{{ prog.degree_type }} &middot; {{ dept.name }}</small>
+                </div>
+              </div>
+            {% endfor %}
+          {% endfor %}
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="text-muted">Programme listings will appear here once academic structure is seeded.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

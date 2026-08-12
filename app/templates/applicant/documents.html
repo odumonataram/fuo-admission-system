@@ -1,0 +1,41 @@
+{% extends "shared/base.html" %}
+{% from "shared/form_macros.html" import render_field %}
+{% block title %}Upload Documents | {{ app_name }}{% endblock %}
+
+{% block content %}
+<section class="py-5">
+  <div class="container" style="max-width: 680px;">
+    <h3 class="mb-4"><i class="bi bi-cloud-upload me-2"></i>Upload Documents</h3>
+
+    <div class="fuo-card p-4 p-md-5">
+      {% if documents %}
+        <h6 class="text-muted text-uppercase small mb-3">Already Uploaded</h6>
+        <ul class="list-group list-group-flush mb-4">
+          {% for doc_type, doc in documents.items() %}
+          <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+            <span><i class="bi bi-file-earmark-check text-success me-2"></i>{{ doc_type.replace('_', ' ').title() }}</span>
+            <span class="text-muted small">{{ doc.original_filename }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
+      <form method="POST" enctype="multipart/form-data" novalidate>
+        {{ form.hidden_tag() }}
+        {{ render_field(form.olevel_result) }}
+        {{ render_field(form.utme_result_slip) }}
+        {{ render_field(form.birth_certificate) }}
+        {{ render_field(form.lga_certificate) }}
+        <div class="form-text mb-3">Accepted formats: PDF, JPG, PNG. Maximum 5 MB per file.</div>
+
+        <div class="d-flex justify-content-between mt-4">
+          <a href="{{ url_for('applicant.application_form') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back
+          </a>
+          {{ form.submit(class="btn btn-fuo-primary px-4") }}
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}

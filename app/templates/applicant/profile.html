@@ -1,0 +1,64 @@
+{% extends "shared/base.html" %}
+{% from "shared/form_macros.html" import render_field %}
+{% block title %}My Profile | {{ app_name }}{% endblock %}
+
+{% block content %}
+<section class="py-5">
+  <div class="container" style="max-width: 720px;">
+    <h3 class="mb-4"><i class="bi bi-person-vcard me-2"></i>Personal Profile</h3>
+
+    <div class="fuo-card p-4 p-md-5">
+      <form method="POST" enctype="multipart/form-data" novalidate>
+        {{ form.hidden_tag() }}
+
+        <h6 class="text-muted text-uppercase small mb-3">Passport Photograph</h6>
+        <div class="d-flex align-items-center gap-3 mb-4">
+          {% if profile.passport_photo_path %}
+            <img src="{{ url_for('static', filename='uploads/' + profile.passport_photo_path) }}"
+                 alt="Passport" class="rounded" style="width:90px;height:90px;object-fit:cover;">
+          {% else %}
+            <div class="rounded bg-light d-flex align-items-center justify-content-center"
+                 style="width:90px;height:90px;">
+              <i class="bi bi-person text-muted fs-2"></i>
+            </div>
+          {% endif %}
+          <div class="flex-grow-1">
+            {{ render_field(form.passport_photo) }}
+          </div>
+        </div>
+
+        <h6 class="text-muted text-uppercase small mb-3">Personal Details</h6>
+        <div class="row">
+          <div class="col-md-4">{{ render_field(form.first_name) }}</div>
+          <div class="col-md-4">{{ render_field(form.last_name) }}</div>
+          <div class="col-md-4">{{ render_field(form.middle_name) }}</div>
+        </div>
+        <div class="row">
+          <div class="col-md-6">{{ render_field(form.gender) }}</div>
+          <div class="col-md-6">{{ render_field(form.date_of_birth) }}</div>
+        </div>
+        <div class="row">
+          <div class="col-md-4">{{ render_field(form.nationality) }}</div>
+          <div class="col-md-4">{{ render_field(form.state_of_origin) }}</div>
+          <div class="col-md-4">{{ render_field(form.lga) }}</div>
+        </div>
+        {{ render_field(form.home_address) }}
+
+        <h6 class="text-muted text-uppercase small mb-3 mt-4">Guardian / Next of Kin</h6>
+        <div class="row">
+          <div class="col-md-6">{{ render_field(form.guardian_name) }}</div>
+          <div class="col-md-6">{{ render_field(form.guardian_phone) }}</div>
+        </div>
+        {{ render_field(form.guardian_address) }}
+
+        <div class="d-flex justify-content-between mt-4">
+          <a href="{{ url_for('applicant.dashboard') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back
+          </a>
+          {{ form.submit(class="btn btn-fuo-primary px-4") }}
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}

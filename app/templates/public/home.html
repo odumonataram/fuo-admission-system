@@ -1,0 +1,102 @@
+{% extends "shared/base.html" %}
+{% block title %}Home | {{ app_name }}{% endblock %}
+
+{% block content %}
+
+<!-- Hero -->
+<section class="fuo-hero">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-7">
+                <span class="badge bg-warning text-dark mb-3">
+                    {{ current_year }}/{{ current_year + 1 }} Admission Session Now Open
+                </span>
+                <h1>Federal University Otuoke<br>Admission Portal</h1>
+                <p class="lead mt-3">
+                    Apply, track, and receive your admission letter online — complete with
+                    instant QR code verification so anyone can confirm it's genuine.
+                </p>
+                <div class="d-flex gap-3 mt-4">
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-warning btn-lg fw-semibold px-4">
+                        <i class="bi bi-pencil-square me-1"></i> Start Application
+                    </a>
+                    <a href="{{ url_for('public.application_guide') }}" class="btn btn-outline-light btn-lg px-4">
+                        Application Guide
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-5 text-center d-none d-lg-block">
+                <i class="bi bi-mortarboard" style="font-size: 14rem; opacity: 0.15;"></i>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Faculties -->
+<section class="py-5">
+    <div class="container">
+        <h2 class="section-title">Our Faculties</h2>
+        <p class="section-subtitle mb-4">Explore the range of programmes offered across our faculties.</p>
+        <div class="row g-4">
+            {% for name, icon in [
+                ("Faculty of Science", "bi-flask"),
+                ("Faculty of Social Sciences", "bi-people"),
+                ("Faculty of Arts", "bi-book"),
+                ("Faculty of Management Sciences", "bi-graph-up-arrow")
+            ] %}
+            <div class="col-md-6 col-lg-3">
+                <div class="fuo-card p-4">
+                    <div class="icon-badge mb-3"><i class="bi {{ icon }}"></i></div>
+                    <h5>{{ name }}</h5>
+                    <p class="text-muted small mb-0">View programmes and admission requirements.</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- How it works -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <h2 class="section-title">How Admission Works</h2>
+        <p class="section-subtitle mb-4">A simple, transparent four-step process.</p>
+        <div class="row g-4">
+            {% for step, title, desc, icon in [
+                ("1", "Register & Apply", "Create an account and complete your application form online.", "bi-person-plus"),
+                ("2", "Upload Documents", "Submit your O'Level results, UTME slip, and passport photograph.", "bi-cloud-upload"),
+                ("3", "Get Reviewed", "Admissions officers review and decide on your application.", "bi-search"),
+                ("4", "Download Letter", "Approved applicants get a PDF admission letter with a verifiable QR code.", "bi-file-earmark-check")
+            ] %}
+            <div class="col-md-6 col-lg-3">
+                <div class="fuo-card p-4 text-center">
+                    <div class="icon-badge mx-auto mb-3"><i class="bi {{ icon }}"></i></div>
+                    <h6 class="text-muted mb-1">Step {{ step }}</h6>
+                    <h5>{{ title }}</h5>
+                    <p class="text-muted small mb-0">{{ desc }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Verification callout -->
+<section class="py-5">
+    <div class="container">
+        <div class="row align-items-center fuo-card p-4 p-md-5" style="background: var(--fuo-grey-light);">
+            <div class="col-md-8">
+                <h3 class="text-dark mb-2"><i class="bi bi-qr-code-scan me-2"></i>Verify an Admission Letter</h3>
+                <p class="text-muted mb-0">
+                    Received an admission letter and want to confirm it's genuine? Scan the QR
+                    code printed on it, or enter the verification token below.
+                </p>
+            </div>
+            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                <a href="{{ url_for('public.faq') }}" class="btn btn-fuo-primary px-4">Learn More</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

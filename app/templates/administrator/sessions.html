@@ -1,0 +1,55 @@
+{% extends "administrator/_admin_base.html" %}
+{% from "shared/form_macros.html" import render_field %}
+{% set active_nav = "sessions" %}
+{% block title %}Academic Sessions | {{ app_name }}{% endblock %}
+
+{% block admin_content %}
+<h3 class="mb-4">Academic Sessions</h3>
+
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="fuo-card p-4">
+      <h6 class="mb-3">Add Session</h6>
+      <form method="POST" novalidate>
+        {{ form.hidden_tag() }}
+        {{ render_field(form.name) }}
+        {{ render_field(form.application_open_date) }}
+        {{ render_field(form.application_close_date) }}
+        <div class="form-check mb-3">
+          {{ form.is_current(class="form-check-input") }}
+          {{ form.is_current.label(class="form-check-label") }}
+        </div>
+        {{ form.submit(class="btn btn-fuo-primary w-100") }}
+      </form>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="fuo-card p-4">
+      <table class="table table-hover align-middle">
+        <thead><tr><th>Session</th><th>Applications Open</th><th>Applications Close</th><th>Current</th><th></th></tr></thead>
+        <tbody>
+          {% for s in sessions %}
+          <tr>
+            <td>{{ s.name }}</td>
+            <td>{{ s.application_open_date or "—" }}</td>
+            <td>{{ s.application_close_date or "—" }}</td>
+            <td>
+              {% if s.is_current %}<span class="badge bg-success">Current</span>
+              {% else %}<span class="text-muted small">—</span>{% endif %}
+            </td>
+            <td>
+              {% if not s.is_current %}
+              <a href="{{ url_for('administrator.set_current_session', session_id=s.id) }}" class="btn btn-sm btn-outline-secondary">Set Current</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="text-muted text-center">No sessions yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

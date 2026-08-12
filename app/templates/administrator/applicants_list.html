@@ -1,0 +1,101 @@
+{% extends "administrator/_admin_base.html" %}
+{% set active_nav = "applicants" %}
+{% block title %}Manage Applicants | {{ app_name }}{% endblock %}
+
+{% block admin_content %}
+<h3 class="mb-4">Manage Applicants</h3>
+
+<div class="fuo-card p-3 mb-4">
+  <form method="GET" class="row g-2 align-items-end">
+    <div class="col-md-4">
+      <label class="form-label small text-muted mb-1">Search</label>
+      <input type="text" name="q" value="{{ filters.q }}" class="form-control form-control-sm"
+             placeholder="Name, email, or application number">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small text-muted mb-1">Status</label>
+      <select name="status" class="form-select form-select-sm">
+        <option value="">All</option>
+        {% for s in statuses %}
+          {% if s != 'draft' %}
+          <option value="{{ s }}" {{ "selected" if filters.status == s }}>{{ s.replace('_',' ').title() }}</option>
+          {% endif %}
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small text-muted mb-1">Faculty</label>
+      <select name="faculty_id" class="form-select form-select-sm">
+        <option value="">All</option>
+        {% for f in faculties %}
+        <option value="{{ f.id }}" {{ "selected" if filters.faculty_id|string == f.id|string }}>{{ f.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small text-muted mb-1">Session</label>
+      <select name="session_id" class="form-select form-select-sm">
+        <option value="">All</option>
+        {% for s in sessions %}
+        <option value="{{ s.id }}" {{ "selected" if filters.session_id|string == s.id|string }}>{{ s.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <button type="submit" class="btn btn-fuo-primary btn-sm w-100"><i class="bi bi-search me-1"></i>Filter</button>
+    </div>
+  </form>
+</div>
+
+<div class="fuo-card p-4">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead>
+        <tr>
+          <th>Application No.</th>
+          <th>Applicant</th>
+          <th>Programme</th>
+          <th>UTME Score</th>
+          <th>Status</th>
+          <th>Submitted</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for app in applications %}
+        <tr>
+          <td>{{ app.application_number }}</td>
+          <td>{{ app.applicant.full_name }}</td>
+          <td>{{ app.programme.name if app.programme else "—" }}</td>
+          <td>{{ app.utme_score or "—" }}</td>
+          <td>
+            {% set badge = {'submitted':'secondary','under_review':'warning','approved':'success','rejected':'danger'} %}
+            <span class="badge bg-{{ badge.get(app.status, 'secondary') }} text-capitalize">{{ app.status.replace('_',' ') }}</span>
+          </td>
+          <td>{{ app.submitted_at.strftime('%d %b %Y') if app.submitted_at else "—" }}</td>
+          <td>
+            <a href="{{ url_for('administrator.applicant_detail', application_id=app.id) }}" class="btn btn-sm btn-outline-secondary">
+              View <i class="bi bi-arrow-right"></i>
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-muted text-center py-4">No applications match your filters.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if pagination.pages > 1 %}
+  <nav class="mt-3">
+    <ul class="pagination pagination-sm justify-content-center mb-0">
+      {% for p in range(1, pagination.pages + 1) %}
+      <li class="page-item {{ 'active' if p == pagination.page }}">
+        <a class="page-link" href="{{ url_for('administrator.applicants_list', page=p, q=filters.q, status=filters.status, faculty_id=filters.faculty_id, session_id=filters.session_id) }}">{{ p }}</a>
+      </li>
+      {% endfor %}
+    </ul>
+  </nav>
+  {% endif %}
+</div>
+{% endblock %}

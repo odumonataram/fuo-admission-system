@@ -1,0 +1,46 @@
+{% extends "shared/base.html" %}
+{% block title %}Admission Verification | {{ app_name }}{% endblock %}
+
+{% block content %}
+<section class="py-5">
+  <div class="container" style="max-width: 640px;">
+    <div class="fuo-card p-4 p-md-5 text-center">
+      {% if is_valid %}
+        <i class="bi bi-patch-check-fill text-success" style="font-size: 3rem;"></i>
+        <h3 class="mt-3 mb-1">Admission Verified</h3>
+        <p class="text-muted mb-4">This admission letter is genuine and was issued by {{ university_short_name }}.</p>
+
+        <div class="text-start border rounded p-3 p-md-4 bg-light">
+          <div class="row mb-2">
+            <div class="col-6 text-muted small">Admission Number</div>
+            <div class="col-6 fw-semibold">{{ letter.admission_number }}</div>
+          </div>
+          <div class="row mb-2">
+            <div class="col-6 text-muted small">Reference Number</div>
+            <div class="col-6 fw-semibold">{{ letter.reference_number }}</div>
+          </div>
+          <div class="row mb-2">
+            <div class="col-6 text-muted small">Applicant</div>
+            <div class="col-6 fw-semibold">{{ letter.decision.application.applicant.full_name }}</div>
+          </div>
+          <div class="row mb-2">
+            <div class="col-6 text-muted small">Programme</div>
+            <div class="col-6 fw-semibold">{{ letter.decision.application.programme.name }}</div>
+          </div>
+          <div class="row">
+            <div class="col-6 text-muted small">Date Issued</div>
+            <div class="col-6 fw-semibold">{{ letter.date_issued.strftime('%d %B %Y') }}</div>
+          </div>
+        </div>
+      {% else %}
+        <i class="bi bi-x-circle-fill text-danger" style="font-size: 3rem;"></i>
+        <h3 class="mt-3 mb-1">Verification Failed</h3>
+        <p class="text-muted mb-0">
+          This QR code or link could not be verified against our records. It may be invalid,
+          revoked, or altered. Contact the Admissions Office if you believe this is an error.
+        </p>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}

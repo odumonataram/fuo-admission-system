@@ -1,0 +1,118 @@
+{% extends "administrator/_admin_base.html" %}
+{% set active_nav = "applicants" %}
+{% block title %}{{ application.application_number }} | {{ app_name }}{% endblock %}
+
+{% block admin_content %}
+<a href="{{ url_for('administrator.applicants_list') }}" class="text-decoration-none small">
+  <i class="bi bi-arrow-left me-1"></i>Back to Applicants
+</a>
+
+<div class="d-flex justify-content-between align-items-center mt-2 mb-4">
+  <h3 class="mb-0">{{ application.application_number }}</h3>
+  {% set badge = {'submitted':'secondary','under_review':'warning','approved':'success','rejected':'danger'} %}
+  <span class="badge bg-{{ badge.get(application.status, 'secondary') }} text-capitalize fs-6">{{ application.status.replace('_',' ') }}</span>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="fuo-card p-4 mb-4">
+      <div class="row mb-3">
+        <div class="col-md-3 text-center">
+          {% if profile.passport_photo_path %}
+            <img src="{{ url_for('static', filename='uploads/' + profile.passport_photo_path) }}"
+                 class="rounded" style="width:100px;height:100px;object-fit:cover;">
+          {% else %}
+            <div class="rounded bg-light d-flex align-items-center justify-content-center mx-auto" style="width:100px;height:100px;">
+              <i class="bi bi-person text-muted fs-2"></i>
+            </div>
+          {% endif %}
+        </div>
+        <div class="col-md-9">
+          <h5 class="mb-1">{{ profile.full_name }}</h5>
+          <p class="text-muted small mb-1">{{ profile.gender }} &middot; DOB: {{ profile.date_of_birth }}</p>
+          <p class="text-muted small mb-1">{{ profile.state_of_origin }}, {{ profile.lga }} &middot; {{ profile.nationality }}</p>
+          <p class="text-muted small mb-0">{{ profile.user.email }} &middot; {{ profile.user.phone_number }}</p>
+        </div>
+      </div>
+
+      <hr>
+      <h6 class="text-muted text-uppercase small mb-2">Programme</h6>
+      <p class="mb-3">
+        {{ application.programme.name }} ({{ application.programme.degree_type }})<br>
+        <span class="text-muted small">{{ application.programme.department.name }}, {{ application.programme.department.faculty.name }}</span>
+      </p>
+
+      <h6 class="text-muted text-uppercase small mb-2">UTME Details</h6>
+      <p class="mb-2">Reg No: {{ application.utme_registration_number }} &middot; Score: {{ application.utme_score }}</p>
+      <table class="table table-sm mb-3">
+        <thead><tr><th>Subject</th><th>Score</th></tr></thead>
+        <tbody>
+          {% for s in utme_subjects %}
+          <tr><td>{{ s.subject }}</td><td>{{ s.score }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <h6 class="text-muted text-uppercase small mb-2">O'Level Results ({{ application.olevel_exam_type }}, {{ application.olevel_exam_year }})</h6>
+      <table class="table table-sm mb-3">
+        <thead><tr><th>Subject</th><th>Grade</th></tr></thead>
+        <tbody>
+          {% for r in olevel_results %}
+          <tr><td>{{ r.subject }}</td><td>{{ r.grade }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <h6 class="text-muted text-uppercase small mb-2">Documents</h6>
+      <ul class="list-group list-group-flush">
+        {% for doc_type, doc in documents.items() %}
+        <li class="list-group-item px-0 d-flex justify-content-between">
+          <span><i class="bi bi-file-earmark-text me-2"></i>{{ doc_type.replace('_',' ').title() }}</span>
+          <a href="{{ url_for('static', filename='uploads/' + doc.file_path) }}" target="_blank" class="small">View</a>
+        </li>
+        {% else %}
+        <li class="list-group-item px-0 text-muted">No documents uploaded.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    {% if can_decide %}
+    <div class="fuo-card p-4">
+      <h6 class="mb-3">Admission Decision</h6>
+      <form method="POST">
+        {{ form.hidden_tag() }}
+        {{ form.remarks.label(class="form-label small") }}
+        {{ form.remarks(class="form-control mb-3", rows=4) }}
+        <div class="d-grid gap-2">
+          {{ form.submit_approve(class="btn btn-success", onclick="return confirm('Approve this application?');") }}
+          {{ form.submit_reject(class="btn btn-outline-danger", onclick="return confirm('Reject this application?');") }}
+        </div>
+      </form>
+    </div>
+    {% elif application.decision %}
+    <div class="fuo-card p-4">
+      <h6 class="mb-2">Decision Recorded</h6>
+      <p class="mb-1 text-capitalize"><strong>{{ application.decision.status }}</strong></p>
+      <p class="text-muted small mb-1">By: {{ application.decision.decided_by.email }}</p>
+      <p class="text-muted small mb-0">{{ application.decision.decided_at.strftime('%d %b %Y, %I:%M %p') }}</p>
+      {% if application.decision.remarks %}
+        <hr><p class="small mb-0">{{ application.decision.remarks }}</p>
+      {% endif %}
+      {% if application.decision.admission_letter %}
+        <hr>
+        <p class="text-muted small mb-1">Admission Number</p>
+        <p class="fw-semibold mb-2">{{ application.decision.admission_letter.admission_number }}</p>
+        <img src="{{ url_for('static', filename='uploads/' + application.decision.admission_letter.qr_code_path) }}"
+             alt="Verification QR code" class="img-fluid border rounded p-1" style="max-width: 120px;">
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="fuo-card p-4">
+      <p class="text-muted mb-0 small">Only admissions officers or super admins can record a decision.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

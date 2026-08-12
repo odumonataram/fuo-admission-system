@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; background:#f4f6f8; padding:24px;">
+  <div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:8px;overflow:hidden;">
+    <div style="background:#0a3d62;padding:20px;text-align:center;">
+      <h2 style="color:#ffffff;margin:0;">FUO Admission Portal</h2>
+    </div>
+    <div style="padding:28px;color:#1f2937;">
+      <p>Hello {{ user.applicant_profile.first_name if user.applicant_profile else '' }},</p>
+      <p>Welcome to the Federal University Otuoke Admission Portal. Your account has been created successfully.</p>
+      <p>Log in to complete your application, upload your documents, and track your admission status.</p>
+      <p style="font-size:13px;color:#6c7a89;margin-top:24px;">If you did not create this account, please contact the admissions office immediately.</p>
+    </div>
+  </div>
+</body>
+</html>

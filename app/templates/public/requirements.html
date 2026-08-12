@@ -1,0 +1,31 @@
+{% extends "shared/base.html" %}
+{% block title %}Admission Requirements | {{ app_name }}{% endblock %}
+{% block content %}
+<section class="py-5">
+  <div class="container">
+    <h2 class="section-title mb-4">Admission Requirements</h2>
+    <div class="row g-4">
+      <div class="col-md-6">
+        <div class="fuo-card p-4">
+          <h5><i class="bi bi-mortarboard me-2"></i>UTME Requirements</h5>
+          <ul class="text-muted small mb-0">
+            <li>Valid UTME registration with FUO as first choice</li>
+            <li>Minimum UTME cut-off mark as published by JAMB/FUO</li>
+            <li>Five O'Level credits including English and Mathematics</li>
+          </ul>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="fuo-card p-4">
+          <h5><i class="bi bi-file-earmark-text me-2"></i>Direct Entry Requirements</h5>
+          <ul class="text-muted small mb-0">
+            <li>Valid A-Level, ND, HND, or NCE qualification</li>
+            <li>Five O'Level credits including English and Mathematics</li>
+            <li>Registration with JAMB for the relevant session</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

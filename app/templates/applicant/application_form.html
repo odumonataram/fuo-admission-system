@@ -1,0 +1,136 @@
+{% extends "shared/base.html" %}
+{% from "shared/form_macros.html" import render_field %}
+{% block title %}Application Form | {{ app_name }}{% endblock %}
+
+{% block content %}
+<section class="py-5">
+  <div class="container" style="max-width: 820px;">
+    <h3 class="mb-4"><i class="bi bi-file-earmark-text me-2"></i>Application Details</h3>
+
+    <div class="fuo-card p-4 p-md-5">
+      <form method="POST" novalidate id="applicationForm">
+        {{ form.hidden_tag() }}
+
+        <h6 class="text-muted text-uppercase small mb-3">Programme Selection</h6>
+        <div class="row">
+          <div class="col-md-4">{{ render_field(form.faculty_id) }}</div>
+          <div class="col-md-4">{{ render_field(form.department_id) }}</div>
+          <div class="col-md-4">{{ render_field(form.programme_id) }}</div>
+        </div>
+
+        <h6 class="text-muted text-uppercase small mb-3 mt-4">UTME Details</h6>
+        <div class="row">
+          <div class="col-md-6">{{ render_field(form.utme_registration_number) }}</div>
+          <div class="col-md-6">{{ render_field(form.utme_score) }}</div>
+        </div>
+
+        <div class="table-responsive mb-3">
+          <table class="table table-sm align-middle">
+            <thead>
+              <tr><th>UTME Subject</th><th style="width:120px;">Score</th></tr>
+            </thead>
+            <tbody>
+              {% for entry in form.utme_subjects %}
+              <tr>
+                <td>{{ entry.form.subject(class="form-control form-control-sm", placeholder="e.g. English Language" if loop.index == 1 else "Subject " ~ loop.index) }}</td>
+                <td>{{ entry.form.score(class="form-control form-control-sm") }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% if form.utme_subjects.errors %}
+            <div class="text-danger small">{{ form.utme_subjects.errors }}</div>
+          {% endif %}
+        </div>
+
+        <h6 class="text-muted text-uppercase small mb-3 mt-4">O'Level Results</h6>
+        <div class="row">
+          <div class="col-md-6">{{ render_field(form.olevel_exam_type) }}</div>
+          <div class="col-md-6">{{ render_field(form.olevel_exam_year) }}</div>
+        </div>
+
+        <div class="table-responsive mb-3">
+          <table class="table table-sm align-middle">
+            <thead>
+              <tr><th>Subject</th><th style="width:140px;">Grade</th></tr>
+            </thead>
+            <tbody>
+              {% for entry in form.olevel_results %}
+              <tr>
+                <td>{{ entry.form.subject(class="form-control form-control-sm", placeholder="Subject " ~ loop.index) }}</td>
+                <td>{{ entry.form.grade(class="form-select form-select-sm") }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          <div class="form-text">Provide at least 5 subjects with credit grades (A1-C6), including English Language and Mathematics.</div>
+          {% if form.olevel_results.errors %}
+            <div class="text-danger small">{{ form.olevel_results.errors }}</div>
+          {% endif %}
+        </div>
+
+        <div class="d-flex justify-content-between mt-4">
+          <a href="{{ url_for('applicant.dashboard') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back
+          </a>
+          {{ form.submit(class="btn btn-fuo-primary px-4") }}
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const facultySelect = document.getElementById('faculty_id');
+const departmentSelect = document.getElementById('department_id');
+const programmeSelect = document.getElementById('programme_id');
+
+const preselectedDepartment = "{{ form.department_id.data or '' }}";
+const preselectedProgramme = "{{ form.programme_id.data or '' }}";
+
+async function loadDepartments(faculty_id, preselect) {
+    departmentSelect.innerHTML = '<option value="">Loading...</option>';
+    const res = await fetch(`/applicant/api/departments/${faculty_id}`);
+    const data = await res.json();
+    departmentSelect.innerHTML = '<option value="">Select department</option>';
+    data.forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d.id;
+        opt.textContent = d.name;
+        if (preselect && String(d.id) === String(preselect)) opt.selected = true;
+        departmentSelect.appendChild(opt);
+    });
+}
+
+async function loadProgrammes(department_id, preselect) {
+    programmeSelect.innerHTML = '<option value="">Loading...</option>';
+    const res = await fetch(`/applicant/api/programmes/${department_id}`);
+    const data = await res.json();
+    programmeSelect.innerHTML = '<option value="">Select programme</option>';
+    data.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.name;
+        if (preselect && String(p.id) === String(preselect)) opt.selected = true;
+        programmeSelect.appendChild(opt);
+    });
+}
+
+facultySelect.addEventListener('change', () => {
+    if (facultySelect.value) loadDepartments(facultySelect.value);
+});
+departmentSelect.addEventListener('change', () => {
+    if (departmentSelect.value) loadProgrammes(departmentSelect.value);
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (facultySelect.value) {
+        loadDepartments(facultySelect.value, preselectedDepartment).then(() => {
+            if (preselectedDepartment) loadProgrammes(preselectedDepartment, preselectedProgramme);
+        });
+    }
+});
+</script>
+{% endblock %}

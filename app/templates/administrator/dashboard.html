@@ -1,0 +1,97 @@
+{% extends "administrator/_admin_base.html" %}
+{% set active_nav = "dashboard" %}
+{% block title %}Admin Dashboard | {{ app_name }}{% endblock %}
+
+{% block admin_content %}
+<h3 class="mb-4">Dashboard</h3>
+
+<div class="row g-3 mb-4">
+  {% for label, value, icon, color in [
+      ("Total Applicants", stats.total_applicants, "bi-people", "primary"),
+      ("Pending Review", stats.pending, "bi-hourglass-split", "warning"),
+      ("Approved", stats.approved, "bi-check-circle", "success"),
+      ("Rejected", stats.rejected, "bi-x-circle", "danger"),
+      ("Letters Generated", stats.letters_generated, "bi-file-earmark-check", "info"),
+      ("QR Verifications", stats.qr_verifications, "bi-qr-code-scan", "secondary"),
+  ] %}
+  <div class="col-6 col-lg-2">
+    <div class="fuo-card p-3 text-center h-100">
+      <i class="bi {{ icon }} text-{{ color }} fs-3"></i>
+      <h4 class="mt-2 mb-0">{{ value }}</h4>
+      <small class="text-muted">{{ label }}</small>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-lg-7">
+    <div class="fuo-card p-4">
+      <h6 class="mb-3">Monthly Applications</h6>
+      <canvas id="monthlyChart" height="120"></canvas>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="fuo-card p-4">
+      <h6 class="mb-3">Applications by Faculty</h6>
+      <canvas id="facultyChart" height="120"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="fuo-card p-4">
+  <h6 class="mb-3">Recent Applications</h6>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle">
+      <thead>
+        <tr><th>Application No.</th><th>Applicant</th><th>Programme</th><th>Status</th><th>Submitted</th></tr>
+      </thead>
+      <tbody>
+        {% for app in stats.recent_applications %}
+        <tr>
+          <td><a href="{{ url_for('administrator.applicant_detail', application_id=app.id) }}">{{ app.application_number }}</a></td>
+          <td>{{ app.applicant.full_name }}</td>
+          <td>{{ app.programme.name if app.programme else "—" }}</td>
+          <td><span class="badge bg-secondary text-capitalize">{{ app.status.replace('_',' ') }}</span></td>
+          <td>{{ app.submitted_at.strftime('%d %b %Y') if app.submitted_at else "—" }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-muted text-center">No applications yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+new Chart(document.getElementById('monthlyChart'), {
+    type: 'line',
+    data: {
+        labels: {{ month_labels|safe }},
+        datasets: [{
+            label: 'Applications',
+            data: {{ month_counts|safe }},
+            borderColor: '#0a3d62',
+            backgroundColor: 'rgba(10,61,98,0.1)',
+            tension: 0.3,
+            fill: true,
+        }]
+    },
+    options: { plugins: { legend: { display: false } } }
+});
+
+new Chart(document.getElementById('facultyChart'), {
+    type: 'doughnut',
+    data: {
+        labels: {{ faculty_labels|safe }},
+        datasets: [{
+            data: {{ faculty_counts|safe }},
+            backgroundColor: ['#0a3d62', '#1a5f9e', '#f1a208', '#6c7a89', '#16a34a', '#dc2626'],
+        }]
+    }
+});
+</script>
+{% endblock %}

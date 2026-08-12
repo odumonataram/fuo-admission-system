@@ -1,0 +1,50 @@
+{% extends "shared/base.html" %}
+{% block title %}Admission Letter | {{ app_name }}{% endblock %}
+
+{% block content %}
+<section class="py-5">
+  <div class="container" style="max-width: 720px;">
+    <h3 class="mb-4"><i class="bi bi-award me-2"></i>Admission Letter</h3>
+
+    <div class="fuo-card p-4 p-md-5">
+      <div class="alert alert-success mb-4">
+        Congratulations, {{ profile.full_name }}! Your admission is confirmed.
+      </div>
+
+      <div class="row g-4 align-items-center">
+        <div class="col-md-8">
+          <div class="mb-3">
+            <div class="text-muted small">Admission Number</div>
+            <div class="fs-5 fw-semibold">{{ letter.admission_number }}</div>
+          </div>
+          <div class="mb-3">
+            <div class="text-muted small">Reference Number</div>
+            <div class="fw-semibold">{{ letter.reference_number }}</div>
+          </div>
+          <div class="mb-3">
+            <div class="text-muted small">Programme</div>
+            <div class="fw-semibold">{{ application.programme.name }}</div>
+          </div>
+          <div>
+            <div class="text-muted small">Date Issued</div>
+            <div class="fw-semibold">{{ letter.date_issued.strftime('%d %B %Y') }}</div>
+          </div>
+        </div>
+
+        <div class="col-md-4 text-center">
+          <img src="{{ url_for('static', filename='uploads/' + letter.qr_code_path) }}"
+               alt="Admission verification QR code" class="img-fluid border rounded p-2" style="max-width: 180px;">
+          <p class="text-muted small mt-2 mb-0">Scan to verify authenticity</p>
+        </div>
+      </div>
+
+      <hr class="my-4">
+      <p class="text-muted small mb-0">
+        <i class="bi bi-info-circle me-1"></i>
+        A printable PDF version of this letter is coming in a later phase. For now, this QR code
+        can be scanned by anyone to confirm your admission is genuine.
+      </p>
+    </div>
+  </div>
+</section>
+{% endblock %}

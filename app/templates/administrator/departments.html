@@ -1,0 +1,51 @@
+{% extends "administrator/_admin_base.html" %}
+{% from "shared/form_macros.html" import render_field %}
+{% set active_nav = "departments" %}
+{% block title %}Manage Departments | {{ app_name }}{% endblock %}
+
+{% block admin_content %}
+<h3 class="mb-4">Manage Departments</h3>
+
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="fuo-card p-4">
+      <h6 class="mb-3">Add Department</h6>
+      <form method="POST" novalidate>
+        {{ form.hidden_tag() }}
+        {{ render_field(form.faculty_id) }}
+        {{ render_field(form.name) }}
+        {{ render_field(form.code) }}
+        <div class="form-check mb-3">
+          {{ form.is_active(class="form-check-input") }}
+          {{ form.is_active.label(class="form-check-label") }}
+        </div>
+        {{ form.submit(class="btn btn-fuo-primary w-100") }}
+      </form>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="fuo-card p-4">
+      <table class="table table-hover align-middle">
+        <thead><tr><th>Name</th><th>Code</th><th>Faculty</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {% for d in departments %}
+          <tr>
+            <td>{{ d.name }}</td>
+            <td>{{ d.code }}</td>
+            <td>{{ d.faculty.name }}</td>
+            <td>
+              {% if d.is_active %}<span class="badge bg-success">Active</span>
+              {% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}
+            </td>
+            <td><a href="{{ url_for('administrator.toggle_department', department_id=d.id) }}" class="btn btn-sm btn-outline-secondary">Toggle</a></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="text-muted text-center">No departments yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

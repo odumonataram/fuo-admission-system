@@ -1,0 +1,35 @@
+{% extends "shared/base.html" %}
+{% from "shared/form_macros.html" import render_field %}
+{% block title %}Login | {{ app_name }}{% endblock %}
+
+{% block content %}
+<section class="py-5">
+  <div class="container" style="max-width: 460px;">
+    <div class="fuo-card p-4 p-md-5">
+      <div class="text-center mb-4">
+        <i class="bi bi-mortarboard-fill text-fuo-blue" style="font-size: 2.5rem; color: var(--fuo-blue);"></i>
+        <h3 class="mt-2 mb-0">Welcome Back</h3>
+        <p class="text-muted small">Log in to your admission portal account</p>
+      </div>
+
+      <form method="POST" novalidate>
+        {{ form.hidden_tag() }}
+        {{ render_field(form.email) }}
+        {{ render_field(form.password) }}
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="form-check">
+            {{ form.remember_me(class="form-check-input") }}
+            {{ form.remember_me.label(class="form-check-label small") }}
+          </div>
+          <a href="{{ url_for('auth.forgot_password') }}" class="small">Forgot password?</a>
+        </div>
+        {{ form.submit(class="btn btn-fuo-primary w-100 py-2") }}
+      </form>
+
+      <p class="text-center text-muted small mt-4 mb-0">
+        Don't have an account? <a href="{{ url_for('auth.register') }}">Apply Now</a>
+      </p>
+    </div>
+  </div>
+</section>
+{% endblock %}
