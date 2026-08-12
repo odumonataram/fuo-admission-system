@@ -14,6 +14,10 @@ def create_app(config_name=None):
     config_name = config_name or os.environ.get("FLASK_ENV", "development")
 
     app = Flask(__name__, instance_relative_config=True)
+
+    # Ensure Flask's instance directory exists before SQLite is opened.
+    os.makedirs(app.instance_path, exist_ok=True)
+
     app.config.from_object(config[config_name])
     config[config_name].init_app(app)
 
@@ -30,13 +34,16 @@ def create_app(config_name=None):
 
 def _ensure_upload_directories(app):
     base = app.config["UPLOAD_FOLDER"]
+
     subdirs = [
         app.config["PASSPORT_UPLOAD_SUBDIR"],
         app.config["DOCUMENT_UPLOAD_SUBDIR"],
         app.config["QRCODE_SUBDIR"],
         app.config["ADMISSION_LETTER_SUBDIR"],
     ]
+
     os.makedirs(base, exist_ok=True)
+
     for sub in subdirs:
         os.makedirs(os.path.join(base, sub), exist_ok=True)
 
@@ -49,7 +56,7 @@ def _init_extensions(app):
     mail.init_app(app)
     limiter.init_app(app)
 
-    # Import models so Flask-Migrate can see them (must happen after db.init_app).
+    # Import models so Flask-Migrate can see them.
     with app.app_context():
         from app import models  # noqa: F401
 
@@ -99,58 +106,93 @@ def _register_error_handlers(app):
 
 def _register_cli_commands(app):
     from app.utils.cli import register_cli_commands
+
     register_cli_commands(app)
 
 
 def _seed_default_data(app):
     """
-    Auto-create default roles and a default admin account on startup,
-    so the app is usable immediately without running CLI commands manually.
+    Auto-create default roles and a default admin account on startup.
 
-    IMPORTANT: The credentials below are for local development / project
-    demonstration only. Change DEFAULT_ADMIN_PASSWORD (or delete this
-    function entirely) before deploying anywhere real.
+    This allows the application to work immediately after deployment
+    without manually running database setup commands.
     """
+
     with app.app_context():
         from app.models import User, Role
 
-        # Only auto-seed if the tables actually exist yet (avoids errors on
-        # first-ever run before `flask db upgrade` / db.create_all() has run).
         try:
             db.create_all()
         except Exception as e:
-            app.logger.warning(f"Skipping default data seed — could not create tables: {e}")
+            app.logger.warning(
+                f"Skipping default data seed — could not create tables: {e}"
+            )
             return
 
-        # --- Seed roles ---
+        # ---------------------------------------------------------
+        # Seed roles
+        # ---------------------------------------------------------
         default_roles = [
-            ("applicant", "Prospective student applying for admission"),
-            ("admin", "Admissions officer with management access"),
-            ("super_admin", "Full system access including user & settings management"),
-            ("registrar", "Registrar with read access to reports and admission letters"),
+            (
+                "applicant",
+                "Prospective student applying for admission",
+            ),
+            (
+                "admin",
+                "Admissions officer with management access",
+            ),
+            (
+                "super_admin",
+                "Full system access including user & settings management",
+            ),
+            (
+                "registrar",
+                "Registrar with read access to reports and admission letters",
+            ),
         ]
+
         for name, description in default_roles:
             if not Role.query.filter_by(name=name).first():
-                db.session.add(Role(name=name, description=description))
+                db.session.add(
+                    Role(
+                        name=name,
+                        description=description,
+                    )
+                )
+
         db.session.commit()
 
-        # --- Seed default admin account ---
+        # ---------------------------------------------------------
+        # Seed default administrator
+        # ---------------------------------------------------------
         DEFAULT_ADMIN_EMAIL = "admin@fuo.edu.ng"
-        DEFAULT_ADMIN_PASSWORD = "Admin@123"  # CHANGE THIS before real deployment
+        DEFAULT_ADMIN_PASSWORD = "Admin@123"
 
-        admin_role = Role.query.filter_by(name="super_admin").first()
-        if admin_role and not User.query.filter_by(email=DEFAULT_ADMIN_EMAIL).first():
+        admin_role = Role.query.filter_by(
+            name="super_admin"
+        ).first()
+
+        if (
+            admin_role
+            and not User.query.filter_by(
+                email=DEFAULT_ADMIN_EMAIL
+            ).first()
+        ):
             default_admin = User(
                 email=DEFAULT_ADMIN_EMAIL,
                 role=admin_role,
                 is_active=True,
                 is_verified=True,
             )
+
             default_admin.set_password(DEFAULT_ADMIN_PASSWORD)
+
             db.session.add(default_admin)
             db.session.commit()
+
             app.logger.info(
-                f"Default admin created — email: {DEFAULT_ADMIN_EMAIL}, password: {DEFAULT_ADMIN_PASSWORD}"
+                "Default admin created — "
+                f"email: {DEFAULT_ADMIN_EMAIL}"
             )
 
 
@@ -158,6 +200,7 @@ def _register_context_processors(app):
     @app.context_processor
     def inject_globals():
         from datetime import datetime
+
         return {
             "current_year": datetime.utcnow().year,
             "app_name": "Federal University Otuoke Admission System",
