@@ -17,3 +17,4 @@ email-validator==2.2.0
 # Phase 5: QR code generation for admission letters
 qrcode==7.4.2
 Pillow==10.4.0
+gunicorn==23.0.0
