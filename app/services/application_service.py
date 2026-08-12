@@ -1,8 +1,10 @@
 """
-Application service: business logic for creating, validating, and
-submitting an applicant's Application for the current academic session.
+Application service.
 
-Application availability is not restricted by opening or closing dates.
+Handles applicant applications, academic details, document uploads,
+application completeness, and submission.
+
+Applications are NOT restricted by academic-session opening/closing dates.
 Applicants can register and submit applications at any time.
 """
 
@@ -21,48 +23,80 @@ REQUIRED_DOCUMENT_TYPES = [
 ]
 
 REQUIRED_OLEVEL_SUBJECTS = 5
-CREDIT_GRADES = {"A1", "B2", "B3", "C4", "C5", "C6"}
+
+CREDIT_GRADES = {
+    "A1",
+    "B2",
+    "B3",
+    "C4",
+    "C5",
+    "C6",
+}
 
 
-def get_current_session() -> AcademicSession:
+def get_current_session():
     """
-    Return the academic session currently marked as active.
+    Return the current academic session if one exists.
 
-    If no session has been explicitly marked as current, fall back to
-    the most recently created session.
+    Academic sessions are no longer required for applicants to register.
+    If no session exists, return None instead of blocking registration.
     """
-    session = AcademicSession.query.filter_by(is_current=True).first()
 
-    if not session:
-        session = (
-            AcademicSession.query
-            .order_by(AcademicSession.id.desc())
-            .first()
-        )
+    session = AcademicSession.query.filter_by(
+        is_current=True
+    ).first()
 
-    return session
+    if session:
+        return session
+
+    return AcademicSession.query.order_by(
+        AcademicSession.id.desc()
+    ).first()
 
 
 def get_or_create_draft_application(applicant_profile):
     """
-    Return the applicant's application for the current academic session,
-    creating a draft if needed.
+    Return the applicant's draft application.
 
-    Applications are available at all times. Academic session opening
-    and closing dates do not restrict application access.
+    Applicants can register at any time. An academic session is used when
+    available, but the absence of a session does not prevent registration.
     """
+
     session = get_current_session()
 
+    # ---------------------------------------------------------
+    # If an application already exists for the applicant,
+    # return it.
+    # ---------------------------------------------------------
+
+    existing_application = (
+        Application.query
+        .filter_by(applicant_id=applicant_profile.id)
+        .order_by(Application.id.desc())
+        .first()
+    )
+
+    if existing_application:
+        return existing_application, None
+
+    # ---------------------------------------------------------
+    # An Application requires academic_session_id in the current
+    # database schema. Therefore, if no session exists, we cannot
+    # create an Application record yet.
+    #
+    # We return a clear message rather than crashing.
+    # ---------------------------------------------------------
+
     if not session:
-        return None, "No academic session is available."
+        return (
+            None,
+            "No academic session is available. "
+            "Please ask an administrator to create an academic session."
+        )
 
-    application = Application.query.filter_by(
-        applicant_id=applicant_profile.id,
-        academic_session_id=session.id,
-    ).first()
-
-    if application:
-        return application, None
+    # ---------------------------------------------------------
+    # Create a new draft application.
+    # ---------------------------------------------------------
 
     application = Application(
         application_number=f"DRAFT-{applicant_profile.id}-{session.id}",
@@ -72,8 +106,12 @@ def get_or_create_draft_application(applicant_profile):
         status=ApplicationStatus.DRAFT,
     )
 
-    # programme_id is required (nullable=False), so the draft is not
-    # committed until the applicant selects a programme.
+    # programme_id may be nullable=False in the database, so we cannot
+    # commit this record until the applicant selects a programme.
+    #
+    # The application object is returned to the caller and will be
+    # persisted by save_academic_details() after programme selection.
+
     return application, None
 
 
@@ -88,48 +126,94 @@ def save_academic_details(
     olevel_exam_year,
     olevel_results,
 ):
-    """Save or update the applicant's academic information."""
+    """
+    Save the applicant's programme, UTME and O'Level information.
+    """
 
     application.programme_id = programme_id
-    application.utme_registration_number = utme_registration_number
-    application.utme_score = utme_score
-    application.utme_subjects_json = json.dumps(utme_subjects)
-    application.olevel_exam_type = olevel_exam_type
-    application.olevel_exam_year = olevel_exam_year
-    application.olevel_results_json = json.dumps(olevel_results)
 
+    application.utme_registration_number = (
+        utme_registration_number
+    )
+
+    application.utme_score = utme_score
+
+    application.utme_subjects_json = json.dumps(
+        utme_subjects
+    )
+
+    application.olevel_exam_type = (
+        olevel_exam_type
+    )
+
+    application.olevel_exam_year = (
+        olevel_exam_year
+    )
+
+    application.olevel_results_json = json.dumps(
+        olevel_results
+    )
+
+    # Determine whether this is a new application.
     is_new = application.id is None
 
     db.session.add(application)
+
+    # Flush so SQLAlchemy assigns an ID.
     db.session.flush()
 
-    if is_new or application.application_number.startswith("DRAFT-"):
-        session = AcademicSession.query.get(application.academic_session_id)
+    # ---------------------------------------------------------
+    # Generate the real application number.
+    # ---------------------------------------------------------
 
-        sequence = Application.query.filter(
-            Application.academic_session_id == session.id,
-            ~Application.application_number.like("DRAFT-%"),
-        ).count() + 1
-
-        application.application_number = (
-            Application.generate_application_number(
-                session.name,
-                sequence,
-            )
+    if (
+        is_new
+        or application.application_number.startswith("DRAFT-")
+    ):
+        session = AcademicSession.query.get(
+            application.academic_session_id
         )
+
+        if session:
+            sequence = (
+                Application.query
+                .filter(
+                    Application.academic_session_id
+                    == session.id,
+                    ~Application.application_number.like(
+                        "DRAFT-%"
+                    ),
+                )
+                .count()
+                + 1
+            )
+
+            application.application_number = (
+                Application.generate_application_number(
+                    session.name,
+                    sequence,
+                )
+            )
+        else:
+            # Fallback in the unlikely event that the session was
+            # removed after the application was created.
+            application.application_number = (
+                f"APP-{application.id}"
+            )
 
     db.session.commit()
 
     return application
 
 
-def get_uploaded_document_map(application) -> dict:
+def get_uploaded_document_map(application: Application) -> dict:
     """
-    Return {document_type: UploadedDocument} for quick template lookups.
+    Return a dictionary of uploaded documents indexed by document type.
     """
+
     return {
-        doc.document_type: doc
-        for doc in application.documents
+        document.document_type: document
+        for document in application.documents
     }
 
 
@@ -138,21 +222,29 @@ def replace_document(
     document_type: str,
     file_info: dict,
 ):
-    """Replace an existing uploaded document with a new file."""
+    """
+    Replace an existing uploaded document with a new file.
+    """
 
     from app.services.file_service import delete_file
 
-    existing = UploadedDocument.query.filter_by(
-        application_id=application.id,
-        document_type=document_type,
-    ).first()
+    existing = (
+        UploadedDocument.query
+        .filter_by(
+            application_id=application.id,
+            document_type=document_type,
+        )
+        .first()
+    )
 
     if existing:
         delete_file(existing.file_path)
+
         db.session.delete(existing)
+
         db.session.flush()
 
-    doc = UploadedDocument(
+    document = UploadedDocument(
         application_id=application.id,
         document_type=document_type,
         original_filename=file_info["original_filename"],
@@ -162,36 +254,56 @@ def replace_document(
         mime_type=file_info["mime_type"],
     )
 
-    db.session.add(doc)
+    db.session.add(document)
+
     db.session.commit()
 
-    return doc
+    return document
 
 
-def get_completeness_checklist(applicant_profile, application):
+def get_completeness_checklist(
+    applicant_profile,
+    application,
+):
     """
-    Return a list of (label, is_complete) tuples used on the
-    dashboard and preview page.
+    Return a list of (label, is_complete) tuples.
     """
 
     checklist = []
 
+    # ---------------------------------------------------------
+    # Applicant profile
+    # ---------------------------------------------------------
+
     checklist.append(
         (
             "Personal profile completed",
-            bool(applicant_profile.profile_completed),
+            bool(
+                applicant_profile.profile_completed
+            ),
         )
     )
+
+    # ---------------------------------------------------------
+    # Passport photograph
+    # ---------------------------------------------------------
 
     checklist.append(
         (
             "Passport photograph uploaded",
-            bool(applicant_profile.passport_photo_path),
+            bool(
+                applicant_profile.passport_photo_path
+            ),
         )
     )
 
+    # ---------------------------------------------------------
+    # Programme
+    # ---------------------------------------------------------
+
     has_programme = bool(
-        application and application.programme_id
+        application
+        and application.programme_id
     )
 
     checklist.append(
@@ -200,6 +312,10 @@ def get_completeness_checklist(applicant_profile, application):
             has_programme,
         )
     )
+
+    # ---------------------------------------------------------
+    # UTME
+    # ---------------------------------------------------------
 
     has_utme = bool(
         application
@@ -214,8 +330,13 @@ def get_completeness_checklist(applicant_profile, application):
         )
     )
 
+    # ---------------------------------------------------------
+    # O'Level results
+    # ---------------------------------------------------------
+
     has_olevel = bool(
-        application and application.olevel_results_json
+        application
+        and application.olevel_results_json
     )
 
     if has_olevel:
@@ -232,10 +353,11 @@ def get_completeness_checklist(applicant_profile, application):
             ]
 
             has_olevel = (
-                len(filled) >= REQUIRED_OLEVEL_SUBJECTS
+                len(filled)
+                >= REQUIRED_OLEVEL_SUBJECTS
             )
 
-        except (TypeError, ValueError, json.JSONDecodeError):
+        except (TypeError, ValueError):
             has_olevel = False
 
     checklist.append(
@@ -246,25 +368,30 @@ def get_completeness_checklist(applicant_profile, application):
         )
     )
 
+    # ---------------------------------------------------------
+    # Required documents
+    # ---------------------------------------------------------
+
     uploaded_types = (
         {
-            doc.document_type
-            for doc in application.documents
+            document.document_type
+            for document in application.documents
         }
         if application
         else set()
     )
 
-    for doc_type in REQUIRED_DOCUMENT_TYPES:
-        label = doc_type.replace(
-            "_",
-            " ",
-        ).title()
+    for document_type in REQUIRED_DOCUMENT_TYPES:
+        label = (
+            document_type
+            .replace("_", " ")
+            .title()
+        )
 
         checklist.append(
             (
                 f"{label} uploaded",
-                doc_type in uploaded_types,
+                document_type in uploaded_types,
             )
         )
 
@@ -275,9 +402,15 @@ def is_ready_to_submit(
     applicant_profile,
     application,
 ) -> bool:
-    """Return True when all required application sections are complete."""
+    """
+    Return True only when all required application sections
+    have been completed.
+    """
 
-    if not application or application.id is None:
+    if not application:
+        return False
+
+    if application.id is None:
         return False
 
     return all(
@@ -290,16 +423,19 @@ def is_ready_to_submit(
     )
 
 
-def submit_application(application: Application):
+def submit_application(
+    application: Application,
+):
     """
-    Submit an application.
+    Submit an applicant's application.
 
-    There is intentionally NO academic-session opening or closing
-    date check here. Applicants may submit at any time as long as
-    all required application information has been completed.
+    There is no academic-session date restriction.
     """
 
-    application.status = ApplicationStatus.SUBMITTED
+    application.status = (
+        ApplicationStatus.SUBMITTED
+    )
+
     application.submitted_at = datetime.utcnow()
 
     db.session.commit()

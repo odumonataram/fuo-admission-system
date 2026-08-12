@@ -112,20 +112,28 @@ def _register_cli_commands(app):
 
 def _seed_default_data(app):
     """
-    Auto-create default roles and a default admin account on startup.
+    Automatically create the minimum data required for the application
+    to operate after deployment.
 
-    This allows the application to work immediately after deployment
-    without manually running database setup commands.
+    This is especially important on Render Free, where there is no Shell
+    access to manually run Flask CLI seed commands.
     """
 
     with app.app_context():
-        from app.models import User, Role
+        from app.models import (
+            User,
+            Role,
+            Faculty,
+            Department,
+            Programme,
+            AcademicSession,
+        )
 
         try:
             db.create_all()
         except Exception as e:
             app.logger.warning(
-                f"Skipping default data seed — could not create tables: {e}"
+                f"Skipping default data seed - could not create tables: {e}"
             )
             return
 
@@ -163,6 +171,79 @@ def _seed_default_data(app):
         db.session.commit()
 
         # ---------------------------------------------------------
+        # Seed current academic session
+        # ---------------------------------------------------------
+        current_session_name = app.config.get(
+            "CURRENT_ACADEMIC_SESSION",
+            "2025/2026",
+        )
+
+        current_session = AcademicSession.query.filter_by(
+            name=current_session_name
+        ).first()
+
+        if not current_session:
+            current_session = AcademicSession(
+                name=current_session_name,
+                is_current=True,
+            )
+            db.session.add(current_session)
+            db.session.commit()
+
+            app.logger.info(
+                f"Academic session created: {current_session_name}"
+            )
+        else:
+            # Make sure the configured session is the current one.
+            if not current_session.is_current:
+                AcademicSession.query.update(
+                    {AcademicSession.is_current: False}
+                )
+                current_session.is_current = True
+                db.session.commit()
+
+        # ---------------------------------------------------------
+        # Seed basic academic structure if it does not exist
+        # ---------------------------------------------------------
+        faculty = Faculty.query.filter_by(code="SCI").first()
+
+        if not faculty:
+            faculty = Faculty(
+                name="Faculty of Science",
+                code="SCI",
+                is_active=True,
+            )
+            db.session.add(faculty)
+            db.session.flush()
+
+        department = Department.query.filter_by(code="CSC").first()
+
+        if not department:
+            department = Department(
+                name="Department of Computer Science",
+                code="CSC",
+                faculty_id=faculty.id,
+                is_active=True,
+            )
+            db.session.add(department)
+            db.session.flush()
+
+        programme = Programme.query.filter_by(code="CSC-BSC").first()
+
+        if not programme:
+            programme = Programme(
+                name="Computer Science",
+                code="CSC-BSC",
+                department_id=department.id,
+                degree_type="B.Sc.",
+                duration_years=4,
+                admission_capacity=150,
+                is_active=True,
+            )
+            db.session.add(programme)
+            db.session.commit()
+
+        # ---------------------------------------------------------
         # Seed default administrator
         # ---------------------------------------------------------
         DEFAULT_ADMIN_EMAIL = "admin@fuo.edu.ng"
@@ -191,7 +272,7 @@ def _seed_default_data(app):
             db.session.commit()
 
             app.logger.info(
-                "Default admin created — "
+                "Default admin created - "
                 f"email: {DEFAULT_ADMIN_EMAIL}"
             )
 
